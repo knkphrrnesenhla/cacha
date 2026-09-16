@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เปิดตำนาน — ร้านสุ่มการ์ด</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700;800&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --ink: #14121F;
+    --panel: #1E1B2E;
+    --panel-2: #262238;
+    --line: rgba(237,233,245,0.10);
+    --text: #EDE9F5;
+    --text-dim: #A79FC2;
+    --gold: #E8B94F;
+    --magenta: #FF4FA3;
+    --teal: #45D9C3;
+    --blue: #6C8CFF;
+    --grey: #8A8398;
+    --danger: #FF6B6B;
+    --radius: 14px;
+    color-scheme: dark;
+  }
+  :root:not([data-theme="light"]) { /* keep dark as primary identity even under light OS setting per brief-driven design */ }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ink: #F4F2FA;
+      --panel: #FFFFFF;
+      --panel-2: #F0EDF7;
+      --line: rgba(30,27,46,0.10);
+      --text: #1E1B2E;
+      --text-dim: #6B6480;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    background: var(--ink);
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  h1,h2,h3, .display { font-family: 'Kanit', sans-serif; }
+  button { font-family: 'Sarabun', sans-serif; cursor: pointer; }
+  ::selection { background: var(--magenta); color: white; }
+
+  /* ---------- layout ---------- */
+  .app { max-width: 980px; margin: 0 auto; padding: 0 18px 100px; }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0 14px; gap: 12px; flex-wrap: wrap;
+  }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand .mark {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--gold), var(--magenta));
+    display:flex; align-items:center; justify-content:center;
+    font-size: 20px; flex-shrink:0;
+  }
+  .brand h1 { font-size: 20px; margin:0; font-weight: 700; letter-spacing: 0.2px; }
+  .brand p { margin:0; font-size: 12px; color: var(--text-dim); }
+
+  .wallet {
+    display:flex; align-items:center; gap:10px;
+    background: var(--panel); border: 1px solid var(--line);
+    padding: 8px 8px 8px 16px; border-radius: 999px;
+  }
+  .wallet .amt { font-family:'Kanit'; font-weight:700; font-size:16px; }
+  .wallet .amt span { color: var(--gold); }
+  .wallet button {
+    background: var(--gold); color: #1A1408; border:none; font-weight:700;
+    padding: 9px 16px; border-radius: 999px; font-size: 13px;
+  }
+
+  nav.tabs {
+    display:flex; gap: 4px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px;
+    width: fit-content; margin: 4px auto 22px;
+    max-width: 100%; overflow-x: auto;
+  }
+  nav.tabs button {
+    border: none; background: transparent; color: var(--text-dim);
+    padding: 9px 18px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    white-space: nowrap;
+  }
+  nav.tabs button.active { background: var(--magenta); color: white; }
+
+  section.view { display:none; }
+  section.view.active { display:block; }
+
+  /* ---------- gacha ---------- */
+  .banner {
+    border-radius: 20px; padding: 26px 24px; margin-bottom: 22px;
+    background:
+      radial-gradient(120% 140% at 20% 0%, rgba(255,79,163,0.35), transparent 55%),
+      radial-gradient(120% 140% at 90% 100%, rgba(69,217,195,0.28), transparent 55%),
+      var(--panel);
+    border: 1px solid var(--line);
+    position: relative; overflow: hidden;
+  }
+  .banner h2 { font-size: 26px; margin: 0 0 6px; }
+  .banner p { color: var(--text-dim); margin: 0 0 18px; max-width: 46ch; font-size: 14px; }
+  .pull-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .pull-btn {
+    border: none; border-radius: 12px; padding: 14px 20px;
+    font-family:'Kanit'; font-weight:600; font-size: 15px; color:#1A1408;
+    background: var(--gold); display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    min-width: 150px;
+  }
+  .pull-btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  .pull-btn small { font-weight:500; font-size:12px; opacity:0.85; }
+  .pull-btn:disabled { opacity:0.45; cursor:not-allowed; }
+
+  .rate-toggle { margin-top:14px; font-size:13px; color: var(--text-dim); text-decoration: underline; background:none; border:none; padding:0; }
+
+  .rate-table { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; display:none; }
+  .rate-table.open { display:block; }
+  .rate-row { display:flex; justify-content:space-between; padding: 6px 0; font-size: 13.5px; border-bottom: 1px dashed var(--line); }
+  .rate-row:last-child { border-bottom:none; }
+  .rate-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:8px; vertical-align:middle; }
+
+  .section-title { display:flex; align-items:center; justify-content:space-between; margin: 26px 0 12px; }
+  .section-title h3 { margin:0; font-size:16px; }
+  .filter-row select {
+    background: var(--panel); color: var(--text); border:1px solid var(--line);
+    padding: 7px 10px; border-radius: 8px; font-size: 13px;
+  }
+
+  .card-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 12px; }
+  .card-tile {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 12px; text-align:center; position:relative;
+  }
+  .card-tile .art { font-size: 34px; margin-bottom: 8px; }
+  .card-tile .name { font-size: 13px; font-weight:600; margin-bottom: 2px; }
+  .card-tile .rarity { font-size: 11px; font-weight:700; text-transform: uppercase; letter-spacing:0.4px; }
+  .card-tile .count { position:absolute; top:8px; right:10px; font-size:11px; color: var(--text-dim); }
+  .empty-note { color: var(--text-dim); font-size: 14px; padding: 30px 0; text-align:center; }
+
+  /* rarity colors */
+  .r-common { color: var(--grey); }
+  .r-rare { color: var(--blue); }
+  .r-epic { color: var(--magenta); }
+  .r-legendary { color: var(--gold); }
+  .tile-common { box-shadow: inset 0 0 0 1px rgba(138,131,152,0.25); }
+  .tile-rare { box-shadow: inset 0 0 0 1px rgba(108,140,255,0.35); }
+  .tile-epic { box-shadow: inset 0 0 0 1px rgba(255,79,163,0.4); }
+  .tile-legendary { box-shadow: inset 0 0 0 1px rgba(232,185,79,0.55); }
+
+  /* ---------- profile ---------- */
+  .panel { background: var(--panel); border:1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+  .panel h3 { margin: 0 0 4px; font-size: 15px; }
+  .panel .hint { color: var(--text-dim); font-size: 12.5px; margin: 0 0 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { display:block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 6px; }
+  .field input, .field select {
+    width:100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 10px 12px; border-radius: 9px; font-size: 14px;
+  }
+  .avatar-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .avatar-choice {
+    width: 42px; height:42px; border-radius:10px; font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    background: var(--panel-2); border: 2px solid transparent;
+  }
+  .avatar-choice.selected { border-color: var(--magenta); }
+  .btn-primary {
+    background: var(--magenta); color:white; border:none; font-weight:600;
+    padding: 11px 20px; border-radius: 9px; font-size: 14px;
+  }
+  .btn-ghost {
+    background: transparent; color: var(--text-dim); border:1px solid var(--line);
+    padding: 10px 16px; border-radius: 9px; font-size: 13px;
+  }
+  .save-msg { font-size:12.5px; color: var(--teal); margin-left:10px; opacity:0; transition:opacity .2s; }
+  .save-msg.show { opacity:1; }
+
+  table.tx { width:100%; border-collapse: collapse; font-size: 13px; }
+  table.tx th { text-align:left; color: var(--text-dim); font-weight:600; padding: 6px 4px; border-bottom:1px solid var(--line); font-size:12px; }
+  table.tx td { padding: 8px 4px; border-bottom:1px solid var(--line); }
+  .tag { padding:3px 8px; border-radius:999px; font-size:11px; font-weight:700; }
+  .tag.in { background: rgba(69,217,195,0.15); color: var(--teal); }
+  .tag.out { background: rgba(255,79,163,0.15); color: var(--magenta); }
+
+  /* ---------- modals ---------- */
+  .overlay {
+    position: fixed; inset:0; background: rgba(10,9,16,0.72);
+    display:none; align-items:center; justify-content:center; z-index: 60; padding: 16px;
+  }
+  .overlay.open { display:flex; }
+  .modal {
+    background: var(--panel); border:1px solid var(--line); border-radius: 18px;
+    padding: 24px; width: 100%; max-width: 380px; max-height: 88vh; overflow-y:auto;
+    position:relative;
+  }
+  .modal h3 { margin:0 0 4px; font-size:17px; }
+  .modal .close-x {
+    position:absolute; top:14px; right:14px; background:none; border:none;
+    color: var(--text-dim); font-size: 20px; line-height:1;
+  }
+  .amount-row { display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin: 16px 0; }
+  .amount-row button {
+    background: var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding: 12px 0; border-radius: 9px; font-weight:600; font-size:14px;
+  }
+  .amount-row button.selected { border-color: var(--gold); color: var(--gold); }
+  .qr-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; padding: 10px 0 4px; }
+  #qrcode { background:white; padding:10px; border-radius:12px; }
+  .qr-amount { font-family:'Kanit'; font-size: 22px; font-weight:700; }
+  .qr-note { font-size:12px; color: var(--text-dim); text-align:center; line-height:1.5; }
+  .disclosure {
+    font-size: 11.5px; color: var(--text-dim); background: var(--panel-2);
+    border-radius: 9px; padding: 10px 12px; margin-top: 14px; line-height:1.6;
+  }
+
+  /* reveal modal */
+  .reveal-stage { display:flex; flex-direction:column; align-items:center; padding: 10px 0; }
+  .flip-card { width: 160px; height: 220px; perspective: 1000px; margin-bottom: 16px; }
+  .flip-inner {
+    position:relative; width:100%; height:100%; transition: transform 0.6s cubic-bezier(.2,.8,.2,1);
+    transform-style: preserve-3d;
+  }
+  .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+  .flip-face {
+    position:absolute; inset:0; backface-visibility:hidden; border-radius:14px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+  }
+  .flip-back {
+    background: linear-gradient(160deg, var(--panel-2), var(--panel));
+    border: 2px dashed var(--line); font-size: 40px; color: var(--text-dim);
+  }
+  .flip-front {
+    transform: rotateY(180deg); border: 2px solid; padding: 16px; text-align:center;
+  }
+  .flip-front .art { font-size: 52px; margin-bottom:10px; }
+  .flip-front .name { font-family:'Kanit'; font-weight:700; font-size:15px; }
+  .flip-front .rarity { font-size:12px; font-weight:700; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
+  .multi-results { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:6px; }
+  .multi-results .mini {
+    width: 56px; height:72px; border-radius:8px; border:2px solid; display:flex;
+    align-items:center; justify-content:center; font-size:24px;
+  }
+
+  /* ---------- chat ---------- */
+  .chat-fab {
+    position: fixed; bottom: 20px; right: 20px; width: 56px; height:56px; border-radius:50%;
+    background: var(--magenta); border:none; font-size: 24px; color:white;
+    box-shadow: 0 8px 24px rgba(255,79,163,0.4); z-index: 55;
+  }
+  .chat-panel {
+    position: fixed; bottom: 88px; right: 20px; width: 320px; max-width: calc(100vw - 32px);
+    height: 440px; max-height: calc(100vh - 140px);
+    background: var(--panel); border:1px solid var(--line); border-radius: 16px;
+    display:none; flex-direction:column; overflow:hidden; z-index: 55;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+  }
+  .chat-panel.open { display:flex; }
+  .chat-head { padding: 14px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .chat-head .dot { width:8px; height:8px; border-radius:50%; background: var(--teal); }
+  .chat-head strong { font-size: 14px; }
+  .chat-head span { font-size:11px; color: var(--text-dim); display:block; }
+  .chat-body { flex:1; overflow-y:auto; padding: 14px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width: 80%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height:1.5; }
+  .msg.bot { background: var(--panel-2); align-self:flex-start; border-bottom-left-radius:3px; }
+  .msg.user { background: var(--magenta); color:white; align-self:flex-end; border-bottom-right-radius:3px; }
+  .chat-quick { display:flex; gap:6px; flex-wrap:wrap; padding: 0 14px 10px; }
+  .chat-quick button {
+    background: var(--panel-2); border:1px solid var(--line); color: var(--text-dim);
+    font-size: 11.5px; padding: 6px 10px; border-radius: 999px;
+  }
+  .chat-input { display:flex; border-top:1px solid var(--line); padding: 8px; gap:8px; }
+  .chat-input input {
+    flex:1; background: var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding: 9px 12px; border-radius: 999px; font-size: 13px;
+  }
+  .chat-input button {
+    background: var(--gold); border:none; color:#1A1408; font-weight:700;
+    width: 38px; height:38px; border-radius:50%; flex-shrink:0;
+  }
+
+  @media (max-width: 520px) {
+    .chat-panel { right: 12px; bottom: 80px; }
+    .chat-fab { right:12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="mark">🎴</div>
+      <div>
+        <h1>เปิดตำนาน</h1>
+        <p>ร้านสุ่มการ์ดสะสม</p>
+      </div>
+    </div>
+    <div class="wallet">
+      <div class="amt">ยอดคงเหลือ <span id="balanceDisplay">0</span> ฿</div>
+      <button onclick="openTopUp()">เติมเงิน</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-view="gacha" onclick="switchView('gacha')">สุ่มการ์ด</button>
+    <button data-view="inventory" onclick="switchView('inventory')">คลังการ์ด</button>
+    <button data-view="profile" onclick="switchView('profile')">โปรไฟล์ &amp; ตั้งค่า</button>
+  </nav>
+
+  <!-- ================= GACHA VIEW ================= -->
+  <section class="view active" id="view-gacha">
+    <div class="banner">
+      <h2>กล่องสุ่ม: ตำนานราตรี</h2>
+      <p>สุ่มการ์ดสะสม 1 ใบ หรือ 10 ใบรวด ลุ้นการ์ดหายากระดับตำนาน ทุกยอดเติมเงินและการสุ่มบันทึกอัตโนมัติในบัญชีของคุณ</p>
+      <div class="pull-row">
+        <button class="pull-btn" onclick="pullGacha(1)">
+          สุ่ม 1 ครั้ง
+          <small>ราคา 20 ฿ / ใบ</small>
+        </button>
+        <button class="pull-btn secondary" onclick="pullGacha(10)">
+          สุ่ม 10 ครั้ง
+          <small>ราคา 180 ฿ (คุ้มกว่า)</small>
+        </button>
+      </div>
+      <button class="rate-toggle" onclick="toggleRates()">ดูอัตราการออกการ์ด (การันตีความโปร่งใส)</button>
+      <div class="rate-table" id="rateTable"></div>
+    </div>
+
+    <div class="section-title">
+      <h3>ประวัติการสุ่มล่าสุด</h3>
+    </div>
+    <div class="card-grid" id="recentPulls">
+      <div class="empty-note">ยังไม่มีประวัติการสุ่ม ลองเปิดกล่องดูสิ!</div>
+    </div>
+  </section>
+
+  <!-- ================= INVENTORY VIEW ================= -->
+  <section class="view" id="view-inventory">
+    <div class="section-title">
+      <h3>คลังการ์ดของฉัน</h3>
+      <div class="filter-row">
+        <select id="rarityFilter" onchange="renderInventory()">
+          <option value="all">ทุกระดับ</option>
+          <option value="legendary">ตำนาน</option>
+          <option value="epic">หายากมาก</option>
+          <option value="rare">หายาก</option>
+          <option value="common">ธรรมดา</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-grid" id="inventoryGrid"></div>
+  </section>
+
+  <!-- ================= PROFILE VIEW ================= -->
+  <section class="view" id="view-profile">
+    <div class="panel">
+      <h3>โปรไฟล์ของฉัน</h3>
+      <p class="hint">ข้อมูลนี้บันทึกไว้ในเบราว์เซอร์นี้เท่านั้น</p>
+      <div class="field">
+        <label>ชื่อที่แสดง</label>
+        <input type="text" id="profileName" placeholder="เช่น นักสะสมมือใหม่">
+      </div>
+      <div class="field">
+        <label>เลือกอวาตาร์</label>
+        <div class="avatar-row" id="avatarRow"></div>
+      </div>
+      <button class="btn-primary" onclick="saveProfile()">บันทึกโปรไฟล์</button>
+      <span class="save-msg" id="profileSaveMsg">บันทึกแล้ว ✓</span>
+    </div>
+
+    <div class="panel">
+      <h3>ตั้งค่าการรับเงิน (PromptPay)</h3>
+      <p class="hint">ใช้สร้างคิวอาร์โค้ดสำหรับให้ลูกค้าเติมเงินเข้าระบบ — ใส่หมายเลขของร้านคุณ</p>
+      <div class="field">
+        <label>ประเภทพร้อมเพย์</label>
+        <select id="ppType">
+          <option value="phone">เบอร์โทรศัพท์ (10 หลัก)</option>
+          <option value="id">เลขบัตรประชาชน (13 หลัก)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>หมายเลขพร้อมเพย์</label>
+        <input type="text" id="ppNumber" placeholder="0812345678" inputmode="numeric">
+      </div>
+      <button class="btn-primary" onclick="savePaymentSettings()">บันทึกการตั้งค่า</button>
+      <span class="save-msg" id="ppSaveMsg">บันทึกแล้ว ✓</span>
+      <div class="disclosure">
+        หมายเหตุ: เว็บนี้เป็นตัวอย่าง (demo) การสร้างคิวอาร์โค้ดพร้อมเพย์ในรูปแบบมาตรฐาน EMV ฝั่งหน้าเว็บเท่านั้น
+        ระบบยังไม่ได้เชื่อมต่อกับธนาคารหรือผู้ให้บริการชำระเงินจริง จึงไม่สามารถตรวจสอบการโอนเงินอัตโนมัติได้
+        การใช้งานจริงควรเชื่อมต่อ backend กับผู้ให้บริการที่ได้รับอนุญาต เช่น ระบบแจ้งเตือนจากธนาคาร หรือผู้ให้บริการรับชำระเงิน
+        เพื่อยืนยันยอดโอนแบบอัตโนมัติและปลอดภัย
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>ประวัติธุรกรรม</h3>
+      <table class="tx" id="txTable">
+        <thead><tr><th>วันที่</th><th>รายการ</th><th>จำนวน</th></tr></thead>
+        <tbody id="txBody"></tbody>
+      </table>
+      <div class="empty-note" id="txEmpty" style="display:none;">ยังไม่มีธุรกรรม</div>
+    </div>
+
+    <div class="panel">
+      <h3>ล้างข้อมูล</h3>
+      <p class="hint">รีเซ็ตยอดเงิน คลังการ์ด และประวัติทั้งหมดในเบราว์เซอร์นี้</p>
+      <button class="btn-ghost" onclick="resetData()">ล้างข้อมูลทั้งหมด</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- ============ TOP UP MODAL ============ -->
+<div class="overlay" id="topupOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeOverlay('topupOverlay')">✕</button>
+    <h3>เติมเงินเข้าระบบ</h3>
+    <p class="hint" style="margin:4px 0 0; font-size:12.5px; color:var(--text-dim);">เลือกจำนวนเงินที่ต้องการเติม</p>
+    <div class="amount-row" id="amountRow"></div>
+    <div class="field">
+      <label>หรือระบุจำนวนเอง (บาท)</label>
+      <input type="number" id="customAmount" placeholder="เช่น 250" min="1">
+    </div>
+    <button class="btn-primary" style="width:100%;" onclick="generateQR()">สร้างคิวอาร์โค้ด</button>
+
+    <div class="qr-wrap" id="qrArea" style="display:none;">
+      <div class="qr-amount"><span id="qrAmountText">0</span> ฿</div>
+      <div id="qrcode"></div>
+      <div class="qr-note">สแกนด้วยแอปธนาคารที่รองรับพร้อมเพย์<br>แล้วกดยืนยันด้านล่างหลังโอนสำเร็จ</div>
+      <button class="btn-primary" style="width:100%;" onclick="confirmPayment()">ยืนยันว่าชำระเงินแล้ว</button>
+    </div>
+    <div class="disclosure">คิวอาร์นี้สร้างขึ้นฝั่งหน้าเว็บตามมาตรฐานพร้อมเพย์ การยืนยันยอดเป็นการจำลอง (manual) เนื่องจากหน้าเว็บนี้ไม่ได้เชื่อมต่อระบบธนาคารจริง</div>
+  </div>
+</div>
+
+<!-- ============ REVEAL MODAL ============ -->
+<div class="overlay" id="revealOverlay">
+  <div class="modal">
+    <button class="close-x" onclick="closeOverlay('revealOverlay')">✕</button>
+    <div class="reveal-stage" id="revealStage"></div>
+  </div>
+</div>
+
+<!-- ============ CHAT ============ -->
+<button class="chat-fab" onclick="toggleChat()">💬</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-head">
+    <div class="dot"></div>
+    <div>
+      <strong>ผู้ช่วยร้านค้า</strong>
+      <span>ตอบอัตโนมัติ 24 ชม.</span>
+    </div>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-quick" id="chatQuick"></div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="พิมพ์ข้อความ..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()">➤</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const RARITY = {
+  common:    { label: 'ธรรมดา',      color: '#8A8398', weight: 60 },
+  rare:      { label: 'หายาก',        color: '#6C8CFF', weight: 27 },
+  epic:      { label: 'หายากมาก',     color: '#FF4FA3', weight: 10 },
+  legendary: { label: 'ตำนาน',        color: '#E8B94F', weight: 3  },
+};
+
+const CARD_POOL = [
+  { id:'c1', name:'นักธนูแห่งป่าเงียบ', rarity:'common', art:'🏹' },
+  { id:'c2', name:'ทหารรับจ้าง', rarity:'common', art:'🗡️' },
+  { id:'c3', name:'ผู้พิทักษ์หมู่บ้าน', rarity:'common', art:'🛡️' },
+  { id:'c4', name:'แมวนำโชค', rarity:'common', art:'🐈‍⬛' },
+  { id:'c5', name:'พ่อค้าเร่ร่อน', rarity:'common', art:'🧳' },
+  { id:'r1', name:'จอมเวทสายฟ้า', rarity:'rare', art:'⚡' },
+  { id:'r2', name:'อัศวินเงา', rarity:'rare', art:'🌑' },
+  { id:'r3', name:'นางพญาแห่งสายลม', rarity:'rare', art:'🍃' },
+  { id:'r4', name:'มังกรน้อยไฟ', rarity:'rare', art:'🔥' },
+  { id:'e1', name:'ราชินีแห่งราตรี', rarity:'epic', art:'🌙' },
+  { id:'e2', name:'เทพแห่งท้องทะเล', rarity:'epic', art:'🌊' },
+  { id:'e3', name:'จอมยุทธ์สายฟ้าผ่า', rarity:'epic', art:'🌩️' },
+  { id:'l1', name:'มังกรทองแห่งตำนาน', rarity:'legendary', art:'🐉' },
+  { id:'l2', name:'เทพเจ้าแห่งกาลเวลา', rarity:'legendary', art:'⏳' },
+];
+
+const PULL_COST_SINGLE = 20;
+const PULL_COST_TEN = 180;
+const TOPUP_PRESETS = [50, 100, 300, 500, 1000, 2000];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const STORAGE_KEY = 'gachaShopState_v1';
+
+function defaultState() {
+  return {
+    balance: 100,
+    inventory: {},
+    transactions: [],
+    profile: { name: '', avatar: '🙂' },
+    promptpay: { type: 'phone', number: '0812345678' },
+  };
+}
+
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed);
+  } catch (e) {
+    console.error('Load state failed', e);
+    return defaultState();
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('Save state failed', e);
+  }
+}
+
+function addTransaction(type, label, amount) {
+  state.transactions.unshift({
+    id: Date.now() + Math.random(),
+    type, label, amount,
+    date: new Date().toLocaleString('th-TH', { dateStyle:'short', timeStyle:'short' })
+  });
+  state.transactions = state.transactions.slice(0, 50);
+}
+
+/* ============================================================
+   VIEW SWITCHING
+   ============================================================ */
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === name);
+  });
+  if (name === 'inventory') renderInventory();
+  if (name === 'profile') renderProfile();
+}
+
+/* ============================================================
+   RENDER: balance, rate table
+   ============================================================ */
+function renderBalance() {
+  document.getElementById('balanceDisplay').textContent = state.balance.toLocaleString('th-TH');
+}
+
+function toggleRates() {
+  const el = document.getElementById('rateTable');
+  el.classList.toggle('open');
+  if (el.classList.contains('open') && !el.dataset.built) {
+    el.dataset.built = '1';
+    el.innerHTML = Object.entries(RARITY).reverse().map(([key, r]) => `
+      <div class="rate-row">
+        <span><span class="rate-dot" style="background:${r.color}"></span>${r.label}</span>
+        <span>${r.weight}%</span>
+      </div>
+    `).join('');
+  }
+}
+
+/* ============================================================
+   GACHA LOGIC
+   ============================================================ */
+function weightedRandomCard() {
+  const totalWeight = Object.values(RARITY).reduce((s, r) => s + r.weight, 0);
+  let roll = Math.random() * totalWeight;
+  let chosenRarity = 'common';
+  for (const [key, r] of Object.entries(RARITY)) {
+    if (roll < r.weight) { chosenRarity = key; break; }
+    roll -= r.weight;
+  }
+  const pool = CARD_POOL.filter(c => c.rarity === chosenRarity);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function pullGacha(times) {
+  const cost = times === 10 ? PULL_COST_TEN : PULL_COST_SINGLE * times;
+  if (state.balance < cost) {
+    openTopUp();
+    flashChat(`ยอดเงินไม่พอสำหรับสุ่ม ${times} ครั้ง (ต้องใช้ ${cost} ฿) ลองเติมเงินก่อนนะ 😊`);
+    return;
+  }
+  state.balance -= cost;
+  const results = [];
+  for (let i = 0; i < times; i++) {
+    const card = weightedRandomCard();
+    results.push(card);
+    state.inventory[card.id] = (state.inventory[card.id] || 0) + 1;
+  }
+  addTransaction('out', times === 1 ? 'สุ่มการ์ด 1 ครั้ง' : `สุ่มการ์ด ${times} ครั้ง`, -cost);
+  saveState();
+  renderBalance();
+  renderRecentPulls(results);
+  showReveal(results);
+}
+
+function renderRecentPulls(results) {
+  const grid = document.getElementById('recentPulls');
+  grid.innerHTML = results.map(c => `
+    <div class="card-tile tile-${c.rarity}">
+      <div class="art">${c.art}</div>
+      <div class="name">${c.name}</div>
+      <div class="rarity r-${c.rarity}">${RARITY[c.rarity].label}</div>
+    </div>
+  `).join('');
+}
+
+function showReveal(results) {
+  const stage = document.getElementById('revealStage');
+  if (results.length === 1) {
+    const c = results[0];
+    stage.innerHTML = `
+      <div class="flip-card" id="flipCard">
+        <div class="flip-inner">
+          <div class="flip-face flip-back">?</div>
+          <div class="flip-face flip-front" style="border-color:${RARITY[c.rarity].color}; background:${RARITY[c.rarity].color}18;">
+            <div class="art">${c.art}</div>
+            <div class="name">${c.name}</div>
+            <div class="rarity" style="color:${RARITY[c.rarity].color};">${RARITY[c.rarity].label}</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="closeOverlay('revealOverlay')">รับการ์ด</button>
+    `;
+    document.getElementById('revealOverlay').classList.add('open');
+    setTimeout(() => document.getElementById('flipCard').classList.add('flipped'), 150);
+  } else {
+    stage.innerHTML = `
+      <h3 style="margin-bottom:10px;">ผลการสุ่ม ${results.length} ใบ</h3>
+      <div class="multi-results">
+        ${results.map(c => `
+          <div class="mini" style="border-color:${RARITY[c.rarity].color}; background:${RARITY[c.rarity].color}18;" title="${c.name}">
+            ${c.art}
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn-primary" style="margin-top:18px;" onclick="closeOverlay('revealOverlay')">รับการ์ดทั้งหมด</button>
+    `;
+    document.getElementById('revealOverlay').classList.add('open');
+  }
+}
+
+/* ============================================================
+   INVENTORY
+   ============================================================ */
+function renderInventory() {
+  const filter = document.getElementById('rarityFilter').value;
+  const grid = document.getElementById('inventoryGrid');
+  const owned = Object.entries(state.inventory)
+    .map(([id, count]) => ({ card: CARD_POOL.find(c => c.id === id), count }))
+    .filter(x => x.card && (filter === 'all' || x.card.rarity === filter))
+    .sort((a,b) => {
+      const order = ['legendary','epic','rare','common'];
+      return order.indexOf(a.card.rarity) - order.indexOf(b.card.rarity);
+    });
+
+  if (owned.length === 0) {
+    grid.innerHTML = `<div class="empty-note">ยังไม่มีการ์ดในหมวดนี้ ไปสุ่มการ์ดกันเถอะ!</div>`;
+    return;
+  }
+
+  grid.innerHTML = owned.map(({card, count}) => `
+    <div class="card-tile tile-${card.rarity}">
+      <span class="count">x${count}</span>
+      <div class="art">${card.art}</div>
+      <div class="name">${card.name}</div>
+      <div class="rarity r-${card.rarity}">${RARITY[card.rarity].label}</div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   PROFILE
+   ============================================================ */
+const AVATAR_OPTIONS = ['🙂','😎','🐲','🦊','🧙','🥷','👑','🎴'];
+
+function renderProfile() {
+  document.getElementById('profileName').value = state.profile.name;
+  const row = document.getElementById('avatarRow');
+  row.innerHTML = AVATAR_OPTIONS.map(a => `
+    <div class="avatar-choice ${a === state.profile.avatar ? 'selected' : ''}" onclick="pickAvatar('${a}')">${a}</div>
+  `).join('');
+
+  document.getElementById('ppType').value = state.promptpay.type;
+  document.getElementById('ppNumber').value = state.promptpay.number;
+
+  renderTransactions();
+}
+
+function pickAvatar(a) {
+  state.profile.avatar = a;
+  renderProfile();
+}
+
+function saveProfile() {
+  state.profile.name = document.getElementById('profileName').value.trim();
+  saveState();
+  flashSave('profileSaveMsg');
+}
+
+function savePaymentSettings() {
+  state.promptpay.type = document.getElementById('ppType').value;
+  state.promptpay.number = document.getElementById('ppNumber').value.trim();
+  saveState();
+  flashSave('ppSaveMsg');
+}
+
+function flashSave(id) {
+  const el = document.getElementById(id);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+function renderTransactions() {
+  const body = document.getElementById('txBody');
+  const empty = document.getElementById('txEmpty');
+  if (state.transactions.length === 0) {
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  body.innerHTML = state.transactions.map(t => `
+    <tr>
+      <td>${t.date}</td>
+      <td>${t.label}</td>
+      <td><span class="tag ${t.amount >= 0 ? 'in' : 'out'}">${t.amount >= 0 ? '+' : ''}${t.amount} ฿</span></td>
+    </tr>
+  `).join('');
+}
+
+function resetData() {
+  if (!confirm('ต้องการล้างข้อมูลทั้งหมดในเบราว์เซอร์นี้ใช่หรือไม่? ไม่สามารถย้อนกลับได้')) return;
+  state = defaultState();
+  saveState();
+  renderBalance();
+  renderProfile();
+  renderInventory();
+  document.getElementById('recentPulls').innerHTML = '<div class="empty-note">ยังไม่มีประวัติการสุ่ม ลองเปิดกล่องดูสิ!</div>';
+}
+
+/* ============================================================
+   TOP UP + PROMPTPAY QR
+   ============================================================ */
+let selectedAmount = null;
+
+function openTopUp() {
+  document.getElementById('qrArea').style.display = 'none';
+  document.getElementById('customAmount').value = '';
+  selectedAmount = null;
+  const row = document.getElementById('amountRow');
+  row.innerHTML = TOPUP_PRESETS.map(a => `<button data-a="${a}" onclick="selectPreset(${a})">${a} ฿</button>`).join('');
+  document.getElementById('topupOverlay').classList.add('open');
+}
+
+function selectPreset(a) {
+  selectedAmount = a;
+  document.getElementById('customAmount').value = '';
+  document.querySelectorAll('#amountRow button').forEach(b => {
+    b.classList.toggle('selected', Number(b.dataset.a) === a);
+  });
+}
+
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+/* --- PromptPay EMV QR payload builder (Thailand standard) --- */
+function crc16ccitt(str) {
+  let crc = 0xFFFF;
+  for (let c = 0; c < str.length; c++) {
+    crc ^= (str.charCodeAt(c) << 8);
+    for (let i = 0; i < 8; i++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function tlv(id, value) {
+  const len = String(value.length).padStart(2, '0');
+  return id + len + value;
+}
+
+function buildPromptPayPayload(type, target, amount) {
+  target = target.replace(/\D/g, '');
+  let targetTag, formattedTarget;
+  if (type === 'id') {
+    targetTag = '02';
+    formattedTarget = target.padStart(13, '0');
+  } else {
+    let num = target;
+    if (num.startsWith('0')) num = '66' + num.substring(1);
+    targetTag = '01';
+    formattedTarget = num.padStart(13, '0');
+  }
+  const merchantInfo = tlv('00', 'A000000677010111') + tlv(targetTag, formattedTarget);
+  let payload = '';
+  payload += tlv('00', '01');
+  payload += tlv('01', amount ? '12' : '11');
+  payload += tlv('29', merchantInfo);
+  payload += tlv('52', '0000');
+  payload += tlv('53', '764');
+  if (amount) payload += tlv('54', Number(amount).toFixed(2));
+  payload += tlv('58', 'TH');
+  payload += '6304';
+  payload += crc16ccitt(payload);
+  return payload;
+}
+
+let qrInstance = null;
+
+function generateQR() {
+  const custom = Number(document.getElementById('customAmount').value);
+  const amount = custom > 0 ? custom : selectedAmount;
+  if (!amount || amount <= 0) {
+    flashChat('กรุณาเลือกหรือระบุจำนวนเงินก่อนสร้างคิวอาร์');
+    alert('กรุณาเลือกหรือระบุจำนวนเงินที่ต้องการเติม');
+    return;
+  }
+  if (!state.promptpay.number) {
+    alert('กรุณาตั้งค่าหมายเลขพร้อมเพย์ของร้านก่อน ในหน้าโปรไฟล์ & ตั้งค่า');
+    return;
+  }
+  const payload = buildPromptPayPayload(state.promptpay.type, state.promptpay.number, amount);
+
+  const qrDiv = document.getElementById('qrcode');
+  qrDiv.innerHTML = '';
+  try {
+    qrInstance = new QRCode(qrDiv, { text: payload, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+  } catch (e) {
+    qrDiv.textContent = 'ไม่สามารถสร้างคิวอาร์โค้ดได้ในขณะนี้';
+    console.error(e);
+  }
+  document.getElementById('qrAmountText').textContent = amount;
+  document.getElementById('qrArea').style.display = 'flex';
+  document.getElementById('qrArea').dataset.pendingAmount = amount;
+}
+
+function confirmPayment() {
+  const amount = Number(document.getElementById('qrArea').dataset.pendingAmount || 0);
+  if (!amount) return;
+  state.balance += amount;
+  addTransaction('in', 'เติมเงินผ่านพร้อมเพย์', amount);
+  saveState();
+  renderBalance();
+  closeOverlay('topupOverlay');
+  flashChat(`เติมเงินสำเร็จ ${amount} ฿ ยอดคงเหลือของคุณตอนนี้คือ ${state.balance} ฿ 🎉`);
+}
+
+/* ============================================================
+   CHAT BOT (rule-based, client-side)
+   ============================================================ */
+const QUICK_QUESTIONS = [
+  'วิธีเติมเงิน',
+  'อัตราการออกการ์ด',
+  'ราคาสุ่มการ์ด',
+  'ติดต่อแอดมิน',
+];
+
+function toggleChat() {
+  const panel = document.getElementById('chatPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open') && document.getElementById('chatBody').children.length === 0) {
+    appendMsg('bot', 'สวัสดีค่ะ 👋 ยินดีต้อนรับสู่ร้านเปิดตำนาน มีอะไรให้ช่วยไหมคะ? ลองกดคำถามด้านล่าง หรือพิมพ์มาได้เลย');
+    renderQuick();
+  }
+}
+
+function renderQuick() {
+  document.getElementById('chatQuick').innerHTML = QUICK_QUESTIONS.map(q => `<button onclick="askQuick('${q}')">${q}</button>`).join('');
+}
+
+function askQuick(q) {
+  appendMsg('user', q);
+  respond(q);
+}
+
+function appendMsg(role, text) {
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  appendMsg('user', text);
+  input.value = '';
+  respond(text);
+}
+
+function respond(text) {
+  const t = text.toLowerCase();
+  let reply;
+  if (t.includes('เติมเงิน') || t.includes('โอนเงิน') || t.includes('จ่ายเงิน') || t.includes('qr') || t.includes('คิวอาร์')) {
+    reply = 'กดปุ่ม "เติมเงิน" ด้านบนขวา เลือกจำนวนเงิน แล้วสแกนคิวอาร์พร้อมเพย์ที่ปรากฏด้วยแอปธนาคารของคุณ หลังโอนสำเร็จให้กด "ยืนยันว่าชำระเงินแล้ว" ยอดเงินจะเข้าบัญชีทันทีค่ะ';
+  } else if (t.includes('อัตรา') || t.includes('เรทการ์ด') || t.includes('ดรอป') || t.includes('เปอร์เซ็นต์')) {
+    reply = 'อัตราการออกการ์ดของเราคือ ธรรมดา 60% หายาก 27% หายากมาก 10% และตำนาน 3% ดูรายละเอียดเพิ่มเติมได้ที่ปุ่ม "ดูอัตราการออกการ์ด" ในหน้าสุ่มการ์ดค่ะ';
+  } else if (t.includes('ราคา') || t.includes('กี่บาท') || t.includes('ต้นทุน')) {
+    reply = 'สุ่มครั้งเดียวราคา 20 บาท ส่วนสุ่ม 10 ครั้งราคารวม 180 บาท (คุ้มกว่าสุ่มทีละครั้งค่ะ)';
+  } else if (t.includes('ติดต่อ') || t.includes('แอดมิน') || t.includes('พนักงาน') || t.includes('คน')) {
+    reply = 'หากต้องการติดต่อแอดมินโดยตรง สามารถฝากข้อความไว้ตรงนี้ได้เลย ทีมงานจะติดต่อกลับในเวลาทำการค่ะ 🙏';
+  } else if (t.includes('การ์ด') && (t.includes('มี') || t.includes('อะไรบ้าง'))) {
+    reply = `ตอนนี้ร้านมีการ์ดทั้งหมด ${CARD_POOL.length} แบบ ตั้งแต่ระดับธรรมดาไปจนถึงระดับตำนาน ลองไปสุ่มดูได้เลยค่ะ`;
+  } else if (t.includes('สวัสดี') || t.includes('หวัดดี') || t.includes('hello') || t.includes('hi')) {
+    reply = 'สวัสดีค่ะ ยินดีต้อนรับ มีอะไรให้ช่วยเรื่องการสุ่มการ์ดหรือการเติมเงินไหมคะ?';
+  } else if (t.includes('ขอบคุณ')) {
+    reply = 'ยินดีค่ะ ขอให้สนุกกับการสุ่มการ์ดนะคะ 🎴✨';
+  } else {
+    reply = 'ขอบคุณสำหรับข้อความค่ะ ตอนนี้ระบบตอบอัตโนมัติอาจยังไม่เข้าใจคำถามนี้ทั้งหมด ลองถามเกี่ยวกับ "วิธีเติมเงิน" "อัตราการออกการ์ด" หรือ "ราคาสุ่มการ์ด" ได้เลยค่ะ หรือฝากข้อความไว้ให้แอดมินติดต่อกลับ';
+  }
+  setTimeout(() => appendMsg('bot', reply), 400);
+}
+
+function flashChat(text) {
+  const panel = document.getElementById('chatPanel');
+  if (!panel.classList.contains('open')) return;
+  appendMsg('bot', text);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init() {
+  renderBalance();
+  renderInventory();
+  renderProfile();
+}
+init();
+</script>
+</body>
+</html>
